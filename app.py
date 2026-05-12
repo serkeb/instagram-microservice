@@ -1,14 +1,13 @@
 from flask import Flask, jsonify, request
 from instagrapi import Client
-import os, threading, time
+import os, threading, time, traceback
 
 app = Flask(__name__)
 _cl = None
 _lock = threading.Lock()
 
-# Cache simple en memoria
 _cache = {}
-CACHE_TTL = 300  # 5 minutos
+CACHE_TTL = 300
 
 def cached(key, fn):
     now = time.time()
@@ -33,7 +32,6 @@ def profile(username):
     try:
         def fetch():
             cl = get_client()
-            # Usar user_id primero y después info — más estable
             uid = cl.user_id_from_username(username)
             user = cl.user_info(uid)
             return {
@@ -48,6 +46,7 @@ def profile(username):
             }
         return jsonify(cached(f"profile:{username}", fetch))
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/reels/<username>")
@@ -76,6 +75,7 @@ def reels(username):
             return data
         return jsonify(cached(f"reels:{username}:{sort_by}", fetch))
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/posts/<username>")
@@ -102,6 +102,7 @@ def posts(username):
             return data
         return jsonify(cached(f"posts:{username}:{sort_by}", fetch))
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/health")
